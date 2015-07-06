@@ -1,0 +1,9 @@
+/* 
+  UpLoadMoreControl.strings
+  GalaToy
+
+  Created by 彭光波 on 15/5/12.
+
+*/
+"Pull up to load more ..." = "上拉可以加载更多...";
+"Release to load more ..." = "释放将会加载更多...";
