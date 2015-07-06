@@ -8,6 +8,6 @@
 
 @import UIKit;
 
-@interface UpViewController : UIViewController
+@interface UpViewController : UITableViewController
 
 @end

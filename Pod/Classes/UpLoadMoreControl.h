@@ -8,6 +8,9 @@
 
 #import <UIKit/UIKit.h>
 
+#define UpLoadMoreControlLocalizedString(key) \
+NSLocalizedStringFromTableInBundle((key), @"UpLoadMoreControl", [UpLoadMoreControl uploadMoreControlBundle], nil)
+
 typedef enum {
     UpLoadMoreControlStateNormal = 0,       // 正常
     UpLoadMoreControlStateReady,            // 准备load
@@ -45,5 +48,7 @@ typedef enum {
  *  在scrollView的代理方法scrollViewDidScroll中调用本方法
  */
 - (void)scrollViewDidEndDragging;
+
++ (NSBundle *)uploadMoreControlBundle;
 
 @end

@@ -159,12 +159,14 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
         case UpLoadMoreControlStateNormal:
             [self.activityIndicatorView stopAnimating];
             self.stateLabel.alpha = 1.f;
-            self.stateLabel.text = NSLocalizedStringFromTable(@"Pull up to load more ...", @"UpLoadMoreControl", nil);
+//            self.stateLabel.text = NSLocalizedStringFromTable(@"Pull up to load more ...", @"UpLoadMoreControl", nil);
+            self.stateLabel.text = UpLoadMoreControlLocalizedString(@"Pull up to load more ...");
             break;
         case UpLoadMoreControlStateReady:
             [self.activityIndicatorView stopAnimating];
             self.stateLabel.alpha = 1.f;
-            self.stateLabel.text = NSLocalizedStringFromTable(@"Release to load more ...", @"UpLoadMoreControl", nil);
+//            self.stateLabel.text = NSLocalizedStringFromTable(@"Release to load more ...", @"UpLoadMoreControl", nil);
+            self.stateLabel.text = UpLoadMoreControlLocalizedString(@"Release to load more ...");
             break;
         case UpLoadMoreControlStateLoading:
             [self.activityIndicatorView startAnimating];
@@ -268,6 +270,17 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
             }
         }
     }
+}
+
++ (NSBundle *)uploadMoreControlBundle
+{
+    return [NSBundle bundleWithPath:[self uploadMoreControlBundlePath]];
+}
+
++ (NSString *)uploadMoreControlBundlePath
+{
+    return [[NSBundle bundleForClass:[UpLoadMoreControl class]]
+            pathForResource:@"UpLoadMoreControl" ofType:@"bundle"];
 }
 
 @end
