@@ -3,11 +3,8 @@ use_frameworks!
 
 target 'UpLoadMoreControl_Example', :exclusive => true do
   pod "UpLoadMoreControl", :path => "../"
-  pod 'CTAssetsPickerController',  '~> 2.9.0'
 end
 
 target 'UpLoadMoreControl_Tests', :exclusive => true do
   pod "UpLoadMoreControl", :path => "../"
-
-  
 end
