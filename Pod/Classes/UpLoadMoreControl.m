@@ -29,16 +29,20 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
 - (instancetype)initWithScrollView:(UIScrollView *)scrollView
                             action:(void(^)(UpLoadMoreControl *))actionHandler
 {
+    UIEdgeInsets contentInset = scrollView.contentInset;
+    CGFloat scrollViewWidth = CGRectGetWidth(scrollView.bounds);
+    CGFloat appropriateTop = [self bottomOfScrollView:scrollView] - contentInset.bottom;
+    
     if (self = [super initWithFrame:CGRectMake(0,
-                                               [self bottomOfScrollView:scrollView],
-                                               CGRectGetWidth(scrollView.bounds),
+                                               appropriateTop,
+                                               scrollViewWidth,
                                                UpLoadMoreControlHeight)]) {
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth;
         _scrollView = scrollView;
         _loadMoreActionHandler = actionHandler;
         
+        [self.scrollView addObserver:self forKeyPath:@"frame" options:NSKeyValueObservingOptionNew context:NULL];
         [self.scrollView addObserver:self forKeyPath:@"contentSize" options:NSKeyValueObservingOptionNew context:NULL];
-        [self.scrollView addObserver:self forKeyPath:@"contentInset" options:NSKeyValueObservingOptionNew context:NULL];
         
         // setup sub views
         [self setupSubViews];
@@ -56,8 +60,8 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
 
 - (void)dealloc
 {
+    [self.scrollView removeObserver:self forKeyPath:@"frame"];
     [self.scrollView removeObserver:self forKeyPath:@"contentSize"];
-    [self.scrollView removeObserver:self forKeyPath:@"contentInset"];
 }
 
 - (void)setupSubViews
@@ -104,7 +108,8 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
             [[UIApplication sharedApplication] beginIgnoringInteractionEvents];
             [UIView animateWithDuration:.3f animations:^{
                 self.scrollView.contentInset = newInsets;
-    
+                [self updatePosition];
+                
             } completion:^(BOOL finished){
                 [[UIApplication sharedApplication]endIgnoringInteractionEvents];
                 [self updateState:UpLoadMoreControlStateNormal];
@@ -121,32 +126,37 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
     self.stateLabel.textColor = color;
 }
 
-
 - (CGFloat)bottomOfScrollView:(UIScrollView *)scrollV
 {
-    CGFloat scrollRealHeight = CGRectGetHeight(scrollV.bounds) - scrollV.contentInset.top;
-    CGFloat contentHeight = scrollV.contentSize.height;
-    return scrollRealHeight > contentHeight ? scrollRealHeight : contentHeight;
+    CGSize contentSize = scrollV.contentSize;
+    UIEdgeInsets contentInset = scrollV.contentInset;
+    
+    CGFloat scrollViewHeight = CGRectGetHeight(scrollV.bounds);
+    CGFloat scrollContentHeight = contentInset.top + contentSize.height + contentInset.bottom;
+    
+    return (scrollContentHeight > scrollViewHeight ? scrollContentHeight : scrollViewHeight);
 }
 
 - (BOOL)isContentFullVisiableOfScrollView:(UIScrollView *)scrollV
 {
-    CGFloat scrollRealHeight = CGRectGetHeight(scrollV.bounds) - scrollV.contentInset.top;
-    CGFloat contentHeight = scrollV.contentSize.height;
-    return scrollRealHeight > contentHeight;
+    UIEdgeInsets scrollViewInset = scrollV.contentInset;
+    CGFloat scrollViewHeight = CGRectGetHeight(scrollV.bounds);
+    CGFloat contentHeight = scrollViewInset.top + scrollV.contentSize.height + scrollViewInset.bottom;
+    
+    return scrollViewHeight > contentHeight;
 }
 
 #pragma mark - KVO handler
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
-    if ([keyPath isEqualToString:@"contentSize"]) {
-        [self observeScrollViewContentSizeChanged];
+    if ([keyPath isEqualToString:@"frame"]) {
+        [self updatePosition];
         return;
     }
     
-    if ([keyPath isEqualToString:@"contentInset"]) {
-        [self observeScrollViewContentInsetChanged];
+    if ([keyPath isEqualToString:@"contentSize"]) {
+        [self updatePosition];
         return;
     }
 }
@@ -159,13 +169,13 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
         case UpLoadMoreControlStateNormal:
             [self.activityIndicatorView stopAnimating];
             self.stateLabel.alpha = 1.f;
-//            self.stateLabel.text = NSLocalizedStringFromTable(@"Pull up to load more ...", @"UpLoadMoreControl", nil);
+            //            self.stateLabel.text = NSLocalizedStringFromTable(@"Pull up to load more ...", @"UpLoadMoreControl", nil);
             self.stateLabel.text = UpLoadMoreControlLocalizedString(@"Pull up to load more ...");
             break;
         case UpLoadMoreControlStateReady:
             [self.activityIndicatorView stopAnimating];
             self.stateLabel.alpha = 1.f;
-//            self.stateLabel.text = NSLocalizedStringFromTable(@"Release to load more ...", @"UpLoadMoreControl", nil);
+            //            self.stateLabel.text = NSLocalizedStringFromTable(@"Release to load more ...", @"UpLoadMoreControl", nil);
             self.stateLabel.text = UpLoadMoreControlLocalizedString(@"Release to load more ...");
             break;
         case UpLoadMoreControlStateLoading:
@@ -182,34 +192,19 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
     }
 }
 
-- (void)observeScrollViewContentSizeChanged
+- (void)observeScrollViewContentOffsetChanged
 {
-    if ([self isContentFullVisiableOfScrollView:self.scrollView]) {
-        [NSObject cancelPreviousPerformRequestsWithTarget:self
-                                                 selector:@selector(updateScrollContentSizeToSuitable)
-                                                   object:nil];
-        [self performSelector:@selector(updateScrollContentSizeToSuitable) withObject:nil];
-    } else {
-        [self updateFrame];
-    }
+    [self updatePosition];
 }
 
-- (void)updateScrollContentSizeToSuitable
+- (void)updatePosition
 {
-    self.scrollView.contentSize = CGSizeMake(self.scrollView.contentSize.width,
-                                             [self bottomOfScrollView:self.scrollView]);
-}
-
-- (void)observeScrollViewContentInsetChanged
-{
-    [self updateFrame];
-}
-
-- (void)updateFrame
-{
+    UIEdgeInsets contentInset = self.scrollView.contentInset;
+    CGFloat scrollViewWidth = CGRectGetWidth(self.scrollView.bounds);
+    CGFloat appropriateTop = [self bottomOfScrollView:self.scrollView] - contentInset.bottom;
     self.frame = CGRectMake(0,
-                            [self bottomOfScrollView:self.scrollView],
-                            CGRectGetWidth(self.scrollView.bounds),
+                            appropriateTop,
+                            scrollViewWidth,
                             UpLoadMoreControlHeight);
 }
 
@@ -224,18 +219,19 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
     }
     
     CGFloat contentOffsetY = self.scrollView.contentOffset.y;
-
+    
     if (contentOffsetY + self.scrollView.contentInset.top <= 0) {
         return;
     }
     
     
     CGFloat depend = 0;
-    if ([self isContentFullVisiableOfScrollView:self.scrollView]) {
-        depend = contentOffsetY + self.scrollView.contentInset.top;
-        
+    CGFloat scrollViewContentHeight = self.scrollView.contentSize.height;
+    CGFloat scrollViewHeight = CGRectGetHeight(self.scrollView.bounds);
+    if (scrollViewContentHeight <= scrollViewHeight) {
+        depend = contentOffsetY;
     } else {
-        depend = contentOffsetY - (self.scrollView.contentSize.height - CGRectGetHeight(self.scrollView.bounds));
+        depend = contentOffsetY + scrollViewHeight - scrollViewContentHeight;
     }
     
     if (depend > 0 && depend < self.threshold) {
@@ -262,7 +258,10 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
             
             UIEdgeInsets newInsets = self.scrollView.contentInset;
             newInsets.bottom = self.originalBottomContentInset + UpLoadMoreControlHeight;
-            self.scrollView.contentInset = newInsets;
+            [UIView animateWithDuration:0.3 animations:^{
+                self.scrollView.contentInset = newInsets;
+                [self updatePosition];
+            }];
             
             __weak typeof(self)weakSelf = self;
             if (self.loadMoreActionHandler) {
@@ -284,3 +283,4 @@ static const CGFloat UpLoadMoreControlHeight = 60.f;
 }
 
 @end
+
